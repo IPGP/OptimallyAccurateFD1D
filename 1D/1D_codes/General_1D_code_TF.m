@@ -296,7 +296,7 @@ end
 for it = 1:NSTEP
     
     t = double(it-1) * DELTAT ;
-    source_term = Ampl * exp(-a*(t-T0)^2)/ rho ;
+    source_term = Ampl * exp(-a*(t-T0)^2) / rho ;
       
 % CONV2
 %--------------------------------------------------------------------------
@@ -344,7 +344,7 @@ for it = 1:NSTEP
        end
           
        for i = 2:NX
-           u(i) = u(i)+(g(i)/A_con2(1,2,i-1)); %update c0 + kdc
+           u(i) = u(i)+(g(i)/A_con2(1,2,i-1)); %update: c = c0 + kdc
        end
           
        u(ISOURCE) = source_term * DELTAT ;
@@ -408,7 +408,7 @@ for it = 1:NSTEP
         end
            
         for i=3:(NX-1)
-            u(i) = u(i)+(g(i)/A_con4(1,3,i-2)); %update c0 + kdc
+            u(i) = u(i)+(g(i)/A_con4(1,3,i-2)); %update: c = c0 + kdc
         end
            
         u(ISOURCE) = (source_term * DELTAT) ;  

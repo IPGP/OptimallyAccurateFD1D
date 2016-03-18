@@ -343,16 +343,16 @@ dK4 = zeros(3,5,NX-1) ;
     
      A_con4(1:3,1:5,i) = (1/dt2)*[0, 0, rho(i), 0, 0; 0, 0, -2*rho(i), 0, 0; 0, 0, rho(i), 0, 0];
      
-     K_con4 (1:3,1:5,i)= (1/(24*dt2))*[0 ,0,0,0,0;...
-         -(mu(i-2,1)+mu(i,1)), 16*(mu(i-1,1)+mu(i,1)), -16*(mu(i-1,1)+2*mu(i,1)+mu(i+1,1)),16*(mu(i,1)+mu(i+1,1)), -(mu(i,1)+mu(i+2,1))+(mu(i-2,1)+2*mu(i,1)+mu(i+2,1));...
+     K_con4 (1:3,1:5,i)= (1/(24*dx2))*[0 ,0,0,0,0;...
+         -(mu(i-2,1)+mu(i,1)), 16*(mu(i-1,1)+mu(i,1)), -16*(mu(i-1,1)+2*mu(i,1)+mu(i+1,1))+(mu(i-2,1)+2*mu(i,1)+mu(i+2,1)), 16*(mu(i,1)+mu(i+1,1)), -(mu(i,1)+mu(i+2,1));...
          0,0,0,0,0];
      
      A_opt4(1:3,1:5,i)= (rho(i)/(90*dt2))*[-1 4 84 4 -1 ; 2 -8 -168 -8 2 ; -1 4 84 4 -1];
      
     
-     K_opt4(1:3,1:5,i)=(1/(144*dt2))*[-(mu(i-2,1)+mu(i,1)), 16*(mu(i-1,1)+mu(i,1)), -16*(mu(i-1,1)+2*mu(i,1)+mu(i+1,1)),16*(mu(i,1)+mu(i+1,1)), -(mu(i,1)+mu(i+2,1))+(mu(i-2,1)+2*mu(i,1)+mu(i+2,1));...
-         -10*(mu(i-2,1)+mu(i,1)), 16*10*(mu(i-1,1)+mu(i,1)), -16*10*(mu(i-1,1)+2*mu(i,1)+mu(i+1,1)),16*10*(mu(i,1)+mu(i+1,1)), -10*((mu(i,1)+mu(i+2,1))+(mu(i-2,1)+2*mu(i,1)+mu(i+2,1)));...
-         -(mu(i-2,1)+mu(i,1)), 16*(mu(i-1,1)+mu(i,1)), -16*(mu(i-1,1)+2*mu(i,1)+mu(i+1,1)),16*(mu(i,1)+mu(i+1,1)), -(mu(i,1)+mu(i+2,1))+(mu(i-2,1)+2*mu(i,1)+mu(i+2,1))];
+     K_opt4(1:3,1:5,i)=(1/(144*dx2))*[-(mu(i-2,1)+mu(i,1)), 16*(mu(i-1,1)+mu(i,1)), -16*(mu(i-1,1)+2*mu(i,1)+mu(i+1,1))+(mu(i-2,1)+2*mu(i,1)+mu(i+2,1)),16*(mu(i,1)+mu(i+1,1)), -(mu(i,1)+mu(i+2,1));...
+         -10*(mu(i-2,1)+mu(i,1)), 16*10*(mu(i-1,1)+mu(i,1)), -16*10*(mu(i-1,1)+2*mu(i,1)+mu(i+1,1))+(mu(i-2,1)+2*mu(i,1)+mu(i+2,1)),16*10*(mu(i,1)+mu(i+1,1)), -10*(mu(i,1)+mu(i+2,1));...
+         -(mu(i-2,1)+mu(i,1)), 16*(mu(i-1,1)+mu(i,1)), -16*(mu(i-1,1)+2*mu(i,1)+mu(i+1,1))+(mu(i-2,1)+2*mu(i,1)+mu(i+2,1)),16*(mu(i,1)+mu(i+1,1)), -(mu(i,1)+mu(i+2,1))];
           
     
     dA4(1:3,1:5,i)= A_opt4(1:3,1:5,i)-A_con4(1:3,1:5,i);
@@ -392,7 +392,7 @@ for it = 1:NSTEP
           
        u(:) = 0.d0 ;
           
-       for i = 2:NX-2
+       for i = 2:NX
            value_mu_du_dxx = unm1(i-1)*K_con2(2,1,i)+unm1(i)*K_con2(2,2,i)+unm1(i+1)*K_con2(2,3,i); 
            u(i) = (value_mu_du_dxx-unm1(i)*A_con2(2,2,i)-unm2(i)*A_con2(3,2,i))/A_con2(1,2,i);
        end
@@ -452,9 +452,9 @@ for it = 1:NSTEP
         PAUSE_ON = false ; % Adds a pause between each snapshot
         Pause_Time = 0.1 ; % Duration of that pause [s]
                       
-        u(:) = ZERO ;
+        u(:) = 0.d0 ;
            
-        for i = 3:(NX-1)
+        for i = 3:NX-1
             value_mu_du_dxx = unm1(i-2)*K_con4(2,1,i)+unm1(i-1)*K_con4(2,2,i)+unm1(i)*K_con4(2,3,i)+...
                               unm1(i+1)*K_con4(2,4,i)+unm1(i+2)*K_con4(2,5,i);
                           
@@ -467,7 +467,7 @@ for it = 1:NSTEP
         % Time steps update
         unm2 = unm1 ;
         unm1 = u ;
-           
+
            
 % OPT4
 %--------------------------------------------------------------------------           
@@ -485,7 +485,7 @@ for it = 1:NSTEP
         
         % Predictor
            
-        for i = 3:(NX-1)
+        for i = 3:NX-1
             value_mu_du_dxx = unm1(i-2)*K_con4(2,1,i)+unm1(i-1)*K_con4(2,2,i)+unm1(i)*K_con4(2,3,i)+...
                               unm1(i+1)*K_con4(2,4,i)+unm1(i+2)*K_con4(2,5,i);
             u(i) = (value_mu_du_dxx-unm1(i)*A_con4(2,3,i)-unm2(i)*A_con4(3,3,i))/A_con4(1,3,i);
@@ -496,14 +496,14 @@ for it = 1:NSTEP
         
         % Corrector
         
-        for i = 3:(NX-1)
+        for i = 3:NX-1
             UI4(1:3,1:5,i-2) = [u(i-2) u(i-1) u(i) u(i+1) u(i+2) ; ...
                    unm1(i-2) unm1(i-1) unm1(i) unm1(i+1) unm1(i+2); ...
                    unm2(i-2) unm2(i-1) unm2(i) unm2(i+1) unm2(i+2)];
             g(i) = -sum(sum((dA4(1:3,1:5,i)-dK4(1:3,1:5,i)).*UI4(1:3,1:5,i-2)))/A_con4(1,3,i);
         end
            
-        for i=3:(NX-1)
+        for i=3:NX-1
             u(i) = u(i)+(g(i)/A_con4(1,3,i)); %update: c = c0 + kdc
         end
            

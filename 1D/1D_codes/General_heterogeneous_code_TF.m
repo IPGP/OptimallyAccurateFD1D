@@ -1,6 +1,17 @@
 % General code for 1D homogeneus & isotrope elastic case without internal
 % boundaries & without PML
 
+%
+
+%  The original code is written by NF, OO, CC
+%   
+
+%
+%             Here're Thijs Franken and Guy Mabylaht working (Summer 2016)
+
+
+
+
 close all ;
 clear all ;
 %clc ;
@@ -48,12 +59,12 @@ end
 % OPT4 = false ;
 
 prompt = {'Amount of nodes','Distance of propagation [m]',...
-          'P-Waves velocity [km/s]','Density of the medium [-]',...
+          'P-Waves velocity model','Density model',...
           'Size of the time steps [ms]','Frequency of the source [Hz]',...
           'Source positions [m]','Amount of receivers'};
 settitle = '1D-Wave modelisation settings';
 num_lines = 1 ;
-usual_values = {'200','100','1800','2300','0.1','100','50','2'} ;
+usual_values = {'200','100','9999','9999','0.1','100','50','2'} ;
 answer = inputdlg(prompt,settitle,num_lines,usual_values) ;
 
 set = zeros(8,1);
@@ -94,17 +105,38 @@ xvec = [0:NX] * DELTAX ; % Vector containing all of the X steps
 
 %cp = input('P-Waves velocity [km/s] : ') ;
 %cp = 1800.d0 ; % Velocity of P-Waves in the medium [km/s]
-cp = set(3) ;
+cpmodel = set(3) ;
 %cs = input('S-Waves velocity [km/s] : ') ;
-cs = cp / 1.732d0 ; % Velocity of S-Waves in the medium [km/s]
-%rho = input('Density of the medium [-] : ') ;
-%rho = 2400.d0 ; % Density of the medium [-]
-rho = set(4) ;
-lambda = rho * (cp^2 - 2.d0 * cs^2) ; % Lam?'s first parameter [u.s.i.]
-mu = rho * cs^2 ; % Lam?'s second parameter [u.s.i.]
 
-fprintf('SPACE:\n NX = %d \n XMAX = %.2f \n XMIN = %.2f \n dX = %.2f\n', NX, XMAX, XMIN, DELTAX) ;
-fprintf('PROPERTIES:\n cp = %.0f \n cs = %.0f \n rho = %.0f \n lambda = %d\n mu = %d\n', cp, cs, rho, lambda, mu) ;
+
+
+%rho = 2400.d0 ; % Density of the medium [-]
+rhomodel = set(4) ;
+
+
+
+
+%definition of the variables for holding the medium parameters
+rho=zeros(NX+1,1);  %density
+mu=zeros(NX+1,1); % stiffness 
+cp=zeros(NX+1,1); % p wave velocity
+cs=zeros(NX+1,1); % s wave velocity
+
+
+% initialization of density and P-wave velocity for each node
+rho(:,1)=(linspace(2400,2500,NX+1));
+cp(:,1)=(linspace(1500,2000,NX+1)); %[km/s]
+cs(:,1)=cp(:,1)/1.732d0; %[km/s]
+ 
+%computation of lame parameter mu
+mu(:,1)=rho(:,1).*cs(:,1).*cs(:,1);
+
+
+%fprintf('SPACE:\n NX = %d \n XMAX = %.2f \n XMIN = %.2f \n dX = %.2f\n', NX, XMAX, XMIN, DELTAX) ;
+%fprintf('PROPERTIES:\n cp = %.0f \n cs = %.0f \n rho = %.0f \n lambda = %d\n mu = %d\n', cp, cs, rho, lambda, mu) ;
+
+%fprintf('PROPERTIES:\n cp = %.0f \n cs = %.0f \n rho = %.0f \n mu = %d\n', cp, cs, rho, mu) ;
+
 
 %----------
 
@@ -213,7 +245,7 @@ end
 %                 CHECK OF THE MODELISATIONS CONSISTENCY
 %-------------------------------------------------------------------------
   
-Courant_number = cp * DELTAT * DELTAX ;
+Courant_number = max(cp)* DELTAT * DELTAX ;
 
 fprintf('Courant Number = %.4f\n', Courant_number) ;
 
@@ -264,14 +296,39 @@ K_opt2 = zeros(3,3,NX-1) ;
 dA2 = zeros(3,3,NX-1) ;
 dK2 = zeros(3,3,NX-1) ;
 
-for i = 2:NX
-  A_con2(1:3,1:3,i-1) = (rho/dt2)*[0 1 0; 0 -2 0; 0 1 0] ;
-  K_con2(1:3,1:3,i-1) = (mu/dx2)*[0 0 0; 1 -2 1; 0 0 0] ;
-  A_opt2(1:3,1:3,i-1) = (rho/(12*dt2))*[1 10 1; -2 -20 -2; 1 10 1] ;
-  K_opt2(1:3,1:3,i-1) = (mu/(12*dx2))*[1 -2 1; 10 -20 10; 1 -2 1] ;
-  dA2(1:3,1:3,i-1) = (rho/(12*dt2))*[1 10 1; -2 -20 -2; 1 10 1]-(rho/dt2)*[0 1 0; 0 -2 0; 0 1 0] ;
-  dK2(1:3,1:3,i-1) = (mu/(12*dx2))*[1 -2 1; 10 -20 10; 1 -2 1]-(mu/dx2)*[0 0 0; 1 -2 1; 0 0 0] ;
-end
+
+
+
+
+ for i=2:NX
+    
+    A_con2(1:3,1:3,i) = (1/dt2)*[0, rho(i), 0;0,-2*rho(i),0;0,rho(i),0];
+    
+    K_con2(1:3,1:3,i) = (1/2/dx2)*[0, 0 ,0; (mu(i-1,1)+mu(i,1)), -(mu(i-1,1)+2*mu(i,1)+mu(i+1,1)), (mu(i,1)+mu(i+1,1)); 0 0 0];
+    
+    A_opt2(1:3,1:3,i) = (1/(12*dt2))*[rho(i), 10*rho(i), rho(i); -2*rho(i), -20*rho(i),-2*rho(i); rho(i), 10*rho(i), rho(i)];
+    
+    K_opt2(1:3,1:3,i)= (1/(24*dx2))*[(mu(i-1,1)+mu(i,1)), -(mu(i-1,1)+2*mu(i,1)+mu(i+1,1)), (mu(i,1)+mu(i+1,1));...
+        10*(mu(i-1,1)+mu(i,1)), -10*(mu(i-1,1)+2*mu(i,1)+mu(i+1,1)), 10*(mu(i,1)+mu(i+1,1));...
+        (mu(i-1,1)+mu(i,1)), -(mu(i-1,1)+2*mu(i,1)+mu(i+1,1)), (mu(i,1)+mu(i+1,1))]; 
+    
+    dA2(1:3,1:3,i)= A_opt2(1:3,1:3,i)-A_con2(1:3,1:3,i);
+   
+    dK2(1:3,1:3,i)= K_opt2(1:3,1:3,i)-K_con2(1:3,1:3,i);
+  
+  end  
+
+% 
+% 
+% 
+% for i = 2:NX
+%   A_con2(1:3,1:3,i-1) = (rho/dt2)*[0 1 0; 0 -2 0; 0 1 0] ;
+%   K_con2(1:3,1:3,i-1) = (mu/dx2)*[0 0 0; 1 -2 1; 0 0 0] ;
+%   A_opt2(1:3,1:3,i-1) = (rho/(12*dt2))*[1 10 1; -2 -20 -2; 1 10 1] ;
+%   K_opt2(1:3,1:3,i-1) = (mu/(12*dx2))*[1 -2 1; 10 -20 10; 1 -2 1] ;
+%   dA2(1:3,1:3,i-1) = (rho/(12*dt2))*[1 10 1; -2 -20 -2; 1 10 1]-(rho/dt2)*[0 1 0; 0 -2 0; 0 1 0] ;
+%   dK2(1:3,1:3,i-1) = (mu/(12*dx2))*[1 -2 1; 10 -20 10; 1 -2 1]-(mu/dx2)*[0 0 0; 1 -2 1; 0 0 0] ;
+% end
 
 A_con4 = zeros(3,5,NX-1) ;
 K_con4 = zeros(3,5,NX-1) ;
@@ -280,15 +337,43 @@ K_opt4 = zeros(3,5,NX-1) ;
 dA4 = zeros(3,5,NX-1) ;
 dK4 = zeros(3,5,NX-1) ;
 
-for i = 3:NX
-   A_con4(1:3,1:5,i-2) = (rho/dt2)*[0 0 1 0 0; 0 0 -2 0 0; 0 0 1 0 0] ;
-   K_con4(1:3,1:5,i-2) = (mu/(12*dx2))*[0 0 0 0 0 ; -1 16 -30 16 -1 ; 0 0 0 0 0] ;
-   A_opt4(1:3,1:5,i-2) = (rho/(90*dt2))*[-1 4 84 4 -1 ; 2 -8 -168 -8 2 ; -1 4 84 4 -1] ;
-   K_opt4(1:3,1:5,i-2) = (mu/(144*dx2))*[-1 16 -30 16 -1; -10 160 -300 160 -10;-1 16 -30 16 -1] ;
-   dA4(1:3,1:5,i-2) = (rho/(90*dt2))*[-1 4 -6 4 1; 2 -8 12 -8 2 ;-1 4 -6 4 1] ;
-   dK4(1:3,1:5,i-2) = (mu/(144*dx2))*[-1 16 -30 16 -1; 2 -32 60 -32 2;-1 16 -30 16 -1] ;
-end
 
+
+ for i=3:NX-1
+    
+     A_con4(1:3,1:5,i) = (1/dt2)*[0, 0, rho(i), 0, 0; 0, 0, -2*rho(i), 0, 0; 0, 0, rho(i), 0, 0];
+     
+     K_con4 (1:3,1:5,i)= (1/(24*dt2))*[0 ,0,0,0,0;...
+         -(mu(i-2,1)+mu(i,1)), 16*(mu(i-1,1)+mu(i,1)), -16*(mu(i-1,1)+2*mu(i,1)+mu(i+1,1)),16*(mu(i,1)+mu(i+1,1)), -(mu(i,1)+mu(i+2,1))+(mu(i-2,1)+2*mu(i,1)+mu(i+2,1));...
+         0,0,0,0,0];
+     
+     A_opt4(1:3,1:5,i)= (rho(i)/(90*dt2))*[-1 4 84 4 -1 ; 2 -8 -168 -8 2 ; -1 4 84 4 -1];
+     
+    
+     K_opt4(1:3,1:5,i)=(1/(144*dt2))*[-(mu(i-2,1)+mu(i,1)), 16*(mu(i-1,1)+mu(i,1)), -16*(mu(i-1,1)+2*mu(i,1)+mu(i+1,1)),16*(mu(i,1)+mu(i+1,1)), -(mu(i,1)+mu(i+2,1))+(mu(i-2,1)+2*mu(i,1)+mu(i+2,1));...
+         -10*(mu(i-2,1)+mu(i,1)), 16*10*(mu(i-1,1)+mu(i,1)), -16*10*(mu(i-1,1)+2*mu(i,1)+mu(i+1,1)),16*10*(mu(i,1)+mu(i+1,1)), -10*((mu(i,1)+mu(i+2,1))+(mu(i-2,1)+2*mu(i,1)+mu(i+2,1)));...
+         -(mu(i-2,1)+mu(i,1)), 16*(mu(i-1,1)+mu(i,1)), -16*(mu(i-1,1)+2*mu(i,1)+mu(i+1,1)),16*(mu(i,1)+mu(i+1,1)), -(mu(i,1)+mu(i+2,1))+(mu(i-2,1)+2*mu(i,1)+mu(i+2,1))];
+          
+    
+    dA4(1:3,1:5,i)= A_opt4(1:3,1:5,i)-A_con4(1:3,1:5,i);
+   
+    dK4(1:3,1:5,i)= K_opt4(1:3,1:5,i)-K_con4(1:3,1:5,i);
+  
+  end  
+
+
+
+
+% 
+% for i = 3:NX
+%    A_con4(1:3,1:5,i-2) = (rho/dt2)*[0 0 1 0 0; 0 0 -2 0 0; 0 0 1 0 0] ;
+%    K_con4(1:3,1:5,i-2) = (mu/(12*dx2))*[0 0 0 0 0 ; -1 16 -30 16 -1 ; 0 0 0 0 0] ;
+%    A_opt4(1:3,1:5,i-2) = (rho/(90*dt2))*[-1 4 84 4 -1 ; 2 -8 -168 -8 2 ; -1 4 84 4 -1] ;
+%    K_opt4(1:3,1:5,i-2) = (mu/(144*dx2))*[-1 16 -30 16 -1; -10 160 -300 160 -10;-1 16 -30 16 -1] ;
+%    dA4(1:3,1:5,i-2) = (rho/(90*dt2))*[-1 4 -6 4 1; 2 -8 12 -8 2 ;-1 4 -6 4 1] ;
+%    dK4(1:3,1:5,i-2) = (mu/(144*dx2))*[-1 16 -30 16 -1; 2 -32 60 -32 2;-1 16 -30 16 -1] ;
+% end
+% 
 
 %--------------------------------------------------------------------------
 
@@ -328,6 +413,9 @@ for it = 1:NSTEP
        u(:) = 0.d0 ;
        g(:)= 0.d0 ;
     
+       
+       % Predictor
+       
        for i= 2:NX
            value_mu_du_dxx = unm1(i-1)*K_con2(2,1,i-1)+unm1(i)*K_con2(2,2,i-1)+unm1(i+1)*K_con2(2,3,i-1);
            u(i) = (value_mu_du_dxx-unm1(i)*A_con2(2,2,i-1)-unm2(i)*A_con2(3,2,i-1))/A_con2(1,2,i-1);
@@ -336,6 +424,9 @@ for it = 1:NSTEP
           
        g(:) = 0.d0 ;
           
+       
+       % Corrector
+       
        for i = 2:NX
            UI2(1:3,1:3,i-1) = [u(i-1) u(i) u(i+1); ...
                               unm1(i-1) unm1(i) unm1(i+1);...
@@ -391,6 +482,8 @@ for it = 1:NSTEP
         utotal(:) = 0.d0;
         UI4(:,:) = 0.d0;
            
+        
+        % Predictor
            
         for i = 3:(NX-1)
             value_mu_du_dxx = unm1(i-2)*K_con4(2,1,i-2)+unm1(i-1)*K_con4(2,2,i-2)+unm1(i)*K_con4(2,3,i-2)+...
@@ -400,6 +493,9 @@ for it = 1:NSTEP
            
         g(:)=0.d0;
            
+        
+        % Corrector
+        
         for i = 3:(NX-1)
             UI4(1:3,1:5,i-2) = [u(i-2) u(i-1) u(i) u(i+1) u(i+2) ; ...
                    unm1(i-2) unm1(i-1) unm1(i) unm1(i+1) unm1(i+2); ...

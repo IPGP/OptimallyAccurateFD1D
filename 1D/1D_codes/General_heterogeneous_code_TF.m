@@ -279,10 +279,10 @@ umaxv = Ampl * exp(-a*T0^2) / 2.d0 * DELTAT ; % Def of a display maximum
 u = zeros(NX+1,1) ;
 unm1 = zeros(NX+1,1) ;
 unm2 = zeros(NX+1,1) ;
-
-u1 = zeros(NX+1,1) ;
-u1nm1 = zeros(NX+1,1) ;
-u1nm2 = zeros(NX+1,1) ;
+% 
+% u1 = zeros(NX+1,1) ;
+% u1nm1 = zeros(NX+1,1) ;
+% u1nm2 = zeros(NX+1,1) ;
 
 UI2 = zeros(3,3) ;
 UI4 = zeros(5,3) ;
@@ -381,7 +381,7 @@ dK4 = zeros(3,5,NX-1) ;
 for it = 1:NSTEP
     
     t = double(it-1) * DELTAT ;
-    source_term = Ampl * exp(-a*(t-T0)^2)* dt2/ rho ;
+    source_term = Ampl * exp(-a*(t-T0)^2)/ rho(ISOURCE) ;
       
 % CONV2
 %--------------------------------------------------------------------------
@@ -392,9 +392,9 @@ for it = 1:NSTEP
           
        u(:) = 0.d0 ;
           
-       for i = 2:NX
-           value_mu_du_dxx = unm1(i-1)*K_con2(2,1,i-1)+unm1(i)*K_con2(2,2,i-1)+unm1(i+1)*K_con2(2,3,i-1); 
-           u(i) = (value_mu_du_dxx-unm1(i)*A_con2(2,2,i-1)-unm2(i)*A_con2(3,2,i-1))/A_con2(1,2,i-1);
+       for i = 2:NX-2
+           value_mu_du_dxx = unm1(i-1)*K_con2(2,1,i)+unm1(i)*K_con2(2,2,i)+unm1(i+1)*K_con2(2,3,i); 
+           u(i) = (value_mu_du_dxx-unm1(i)*A_con2(2,2,i)-unm2(i)*A_con2(3,2,i))/A_con2(1,2,i);
        end
       
        u(ISOURCE) = source_term * DELTAT ;
@@ -417,8 +417,8 @@ for it = 1:NSTEP
        % Predictor
        
        for i= 2:NX
-           value_mu_du_dxx = unm1(i-1)*K_con2(2,1,i-1)+unm1(i)*K_con2(2,2,i-1)+unm1(i+1)*K_con2(2,3,i-1);
-           u(i) = (value_mu_du_dxx-unm1(i)*A_con2(2,2,i-1)-unm2(i)*A_con2(3,2,i-1))/A_con2(1,2,i-1);
+           value_mu_du_dxx = unm1(i-1)*K_con2(2,1,i)+unm1(i)*K_con2(2,2,i)+unm1(i+1)*K_con2(2,3,i);
+           u(i) = (value_mu_du_dxx-unm1(i)*A_con2(2,2,i)-unm2(i)*A_con2(3,2,i))/A_con2(1,2,i);
        end
     
           
@@ -431,11 +431,11 @@ for it = 1:NSTEP
            UI2(1:3,1:3,i-1) = [u(i-1) u(i) u(i+1); ...
                               unm1(i-1) unm1(i) unm1(i+1);...
                               unm2(i-1) unm2(i) unm2(i+1)] ;
-           g(i) = -sum(sum((dA2(1:3,1:3,i-1)-dK2(1:3,1:3,i-1)).*UI2(1:3,1:3,i-1)))/A_con2(1,2,i-1) ;
+           g(i) = -sum(sum((dA2(1:3,1:3,i)-dK2(1:3,1:3,i)).*UI2(1:3,1:3,i-1)))/A_con2(1,2,i) ;
        end
           
        for i = 2:NX
-           u(i) = u(i)+(g(i)/A_con2(1,2,i-1)); %update: c = c0 + kdc
+           u(i) = u(i)+(g(i)/A_con2(1,2,i)); %update: c = c0 + kdc
        end
           
        u(ISOURCE) = source_term * DELTAT ;
@@ -455,10 +455,10 @@ for it = 1:NSTEP
         u(:) = ZERO ;
            
         for i = 3:(NX-1)
-            value_mu_du_dxx = unm1(i-2)*K_con4(2,1,i-2)+unm1(i-1)*K_con4(2,2,i-2)+unm1(i)*K_con4(2,3,i-2)+...
-                              unm1(i+1)*K_con4(2,4,i-2)+unm1(i+2)*K_con4(2,5,i-2);
+            value_mu_du_dxx = unm1(i-2)*K_con4(2,1,i)+unm1(i-1)*K_con4(2,2,i)+unm1(i)*K_con4(2,3,i)+...
+                              unm1(i+1)*K_con4(2,4,i)+unm1(i+2)*K_con4(2,5,i);
                           
-            u(i) = (value_mu_du_dxx-unm1(i)*A_con4(2,3,i-1)-unm2(i)*A_con4(3,3,i-1))/A_con4(1,3,i-1);
+            u(i) = (value_mu_du_dxx-unm1(i)*A_con4(2,3,i)-unm2(i)*A_con4(3,3,i))/A_con4(1,3,i);
         end
       
         i = ISOURCE ;
@@ -477,7 +477,7 @@ for it = 1:NSTEP
           
         u(:) = 0.d0 ;
         g(:)= 0.d0 ;
-        u1(:) = 0.d0;
+        
    
         utotal(:) = 0.d0;
         UI4(:,:) = 0.d0;
@@ -486,9 +486,9 @@ for it = 1:NSTEP
         % Predictor
            
         for i = 3:(NX-1)
-            value_mu_du_dxx = unm1(i-2)*K_con4(2,1,i-2)+unm1(i-1)*K_con4(2,2,i-2)+unm1(i)*K_con4(2,3,i-2)+...
-                              unm1(i+1)*K_con4(2,4,i-2)+unm1(i+2)*K_con4(2,5,i-2);
-            u(i) = (value_mu_du_dxx-unm1(i)*A_con4(2,3,i-2)-unm2(i)*A_con4(3,3,i-2))/A_con4(1,3,i-2);
+            value_mu_du_dxx = unm1(i-2)*K_con4(2,1,i)+unm1(i-1)*K_con4(2,2,i)+unm1(i)*K_con4(2,3,i)+...
+                              unm1(i+1)*K_con4(2,4,i)+unm1(i+2)*K_con4(2,5,i);
+            u(i) = (value_mu_du_dxx-unm1(i)*A_con4(2,3,i)-unm2(i)*A_con4(3,3,i))/A_con4(1,3,i);
         end
            
         g(:)=0.d0;
@@ -500,11 +500,11 @@ for it = 1:NSTEP
             UI4(1:3,1:5,i-2) = [u(i-2) u(i-1) u(i) u(i+1) u(i+2) ; ...
                    unm1(i-2) unm1(i-1) unm1(i) unm1(i+1) unm1(i+2); ...
                    unm2(i-2) unm2(i-1) unm2(i) unm2(i+1) unm2(i+2)];
-            g(i) = -sum(sum((dA4(1:3,1:5,i-1)-dK4(1:3,1:5,i-1)).*UI4(1:3,1:5,i-2)))/A_con4(1,3,i-2);
+            g(i) = -sum(sum((dA4(1:3,1:5,i)-dK4(1:3,1:5,i)).*UI4(1:3,1:5,i-2)))/A_con4(1,3,i);
         end
            
         for i=3:(NX-1)
-            u(i) = u(i)+(g(i)/A_con4(1,3,i-2)); %update: c = c0 + kdc
+            u(i) = u(i)+(g(i)/A_con4(1,3,i)); %update: c = c0 + kdc
         end
            
         u(ISOURCE) = (source_term * DELTAT) ;  

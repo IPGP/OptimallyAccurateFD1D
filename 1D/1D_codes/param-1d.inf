@@ -1,0 +1,13 @@
+c Parameters for stag1.f
+c Gridding
+   5000  500  nt,nz
+   0.1    2.0   dt,dz
+c Structure
+    1.0   1.0   0.0   0.0   rho
+   25.0 175.0   0.0   0.0   kappa
+c Source
+  10.0  10.0  tp,ts
+c Receiver
+  151   nr
+c
+end
